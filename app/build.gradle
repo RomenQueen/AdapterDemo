@@ -20,6 +20,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api project(path: ':android_rvlib')
-    implementation 'com.android.support:recyclerview-v7:28.0.0'
+    api project(path: ':androidx_rvlib')
+    implementation 'androidx.appcompat:appcompat:1.1.0'
 }

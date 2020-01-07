@@ -1,7 +1,8 @@
 package com.rq.rvlibrary;
 
-import android.support.annotation.IdRes;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.IdRes;
+import androidx.annotation.Nullable;
 
 /**
  * Created by rq on 2018/9/28
