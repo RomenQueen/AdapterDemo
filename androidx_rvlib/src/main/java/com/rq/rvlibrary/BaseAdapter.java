@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,7 +23,6 @@ import java.util.Map;
 
 import static com.rq.rvlibrary.BaseViewHolder.TAG_POSITION;
 
-
 /**
  * Created by raoqian on 2018/9/21
  */
@@ -35,7 +33,6 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
     Class<?> mHolder;
     private int itemId;
     private Object mObject;
-    private boolean checkLayout = true;
     private List<DATA> showData = new ArrayList<>();
     private SparseArray<Class<? extends BaseViewHolder>> headType = new SparseArray<>();//顶部视图处理器类型
     private SparseArray<Object> headViewData = new SparseArray<>();//顶部视图数据
@@ -48,6 +45,10 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
     private OnClickMaker allOnClickInfo;
     private OnAttachedToBottomListener mOnAttachedToBottomListener;
     private Map<String, Object> contentCash = new HashMap<>();
+
+    private void setContext(Context context) {
+        this.mContext = context;
+    }
 
     public BaseAdapter(Context context, @LayoutRes int itemLayoutId, Class<? extends BaseViewHolder> baseViewHolderClass) {
         this(context, itemLayoutId, baseViewHolderClass, null);
@@ -62,9 +63,24 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         if (context == null || baseViewHolderClass == null || itemLayoutId == 0) {
             throw new AdapterUseException("BaseAdapter.使用三参数构造函数 值不能为空");
         }
-        this.mContext = context;
+        setContext(context);
         this.mHolder = baseViewHolderClass;
         this.itemId = itemLayoutId;
+        this.mObject = obj;
+    }
+
+
+    /**
+     * 不建议使用，每创建见一个ViewHolder会动用两次反射{@link BaseAdapter#getViewHolderByClass(Class, int, ViewGroup, int)}，
+     * 布局ID通过重写{@link BaseViewHolder#inflateLayoutId()}指定
+     */
+    @Deprecated
+    public BaseAdapter(Context context, Class<? extends BaseViewHolder> baseViewHolderClass, Object obj) {
+        if (context == null || baseViewHolderClass == null) {
+            throw new AdapterUseException("BaseAdapter.使用三参数构造函数 值不能为空");
+        }
+        setContext(context);
+        this.mHolder = baseViewHolderClass;
         this.mObject = obj;
     }
 
@@ -79,7 +95,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * @param maps key  对 BrandHolder 的描述，value key布局对应的 BaseViewHolder.class，必须与 BaseViewHolder 使用保持一致
      */
     public BaseAdapter(Context context, @NonNull SparseArray<Class<? extends BaseViewHolder>> maps, Object obj) {
-        this.mContext = context;
+        setContext(context);
         this.multipleHolder = maps;
         this.mObject = obj;
         getMultipleHolderType(null, 0);//进行检测
@@ -89,12 +105,11 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * 追加型布局
      */
     public BaseAdapter(Context context) {
-        this.mContext = context;
+        setContext(context);
     }
 
     public void changeItemView(int viewLayout, boolean refuse) {
         this.itemId = viewLayout;
-        this.checkLayout = false;
         if (refuse) {
             notifyDataSetChanged();
         }
@@ -148,6 +163,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         throw new AdapterUseException(" 多类型布局使用错误，必须复写 getMultipleHolderType() 方法,并且不调用父类方法  ");
     }
 
+
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         VH viewHolder;
@@ -167,7 +183,6 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
                 int tagPosition = realPosition - headViewData.size() - showData.size();
                 viewHolder = getViewHolderByClass(footType.get(tagPosition), footViewResId.get(tagPosition), parent, realPosition);
             }
-
         } else {
             viewHolder = getViewHolderByClass(mHolder, this.itemId, parent, viewType);
         }
@@ -180,7 +195,9 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
                 viewHolder.setClickInfo(itemOnClickMaker);
             }
             viewHolder.setContext(mContext);
-            viewHolder.itemView.setLayoutParams(viewHolder.getLMLayoutParams(viewHolder.itemView.getLayoutParams()));
+            if (viewHolder.itemView.getLayoutParams() != null) {
+                viewHolder.itemView.setLayoutParams(viewHolder.getLMLayoutParams(viewHolder.itemView.getLayoutParams()));
+            }
         }
         return viewHolder;
     }
@@ -197,25 +214,17 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         try {
             Constructor<?>[] ctors = holderRoot.getDeclaredConstructors();
             if (ctors != null && ctors.length > 0) {
-                View itemView = LayoutInflater.from(mContext).inflate(resId, parent, false);
-                VH holder;
-                try {
-                    holder = (VH) ctors[0].newInstance(itemView);
-                } catch (IllegalArgumentException e) {
-                    if (getMore() != null) {
-                        holder = (VH) ctors[0].newInstance(getMore(), itemView);
-                    } else {
-                        throw e;
-                    }
+                int realLayoutId;
+                if (resId != 0) {
+                    realLayoutId = resId;
+                } else {
+                    LOG.e("BaseAdapter", "LINE(213):");
+                    VH holder = getVH(ctors[0], new View(mContext));
+                    realLayoutId = holder.inflateLayoutId();
                 }
-
-                if (holder == null) {
-                    throw new AdapterUseException(holderRoot.getSimpleName() + " 获取到了一个空  Holder -_-||  --> " + viewType);
-                }
+                View itemView = LayoutInflater.from(mContext).inflate(realLayoutId, parent, false);
+                VH holder = getVH(ctors[0], itemView);
                 holder.setRecyclerView(parent);
-                if (checkLayout && holder.inflateLayoutId() != resId) {
-                    throw new AdapterUseException(holderRoot.getSimpleName() + " 布局使用错误,请重写viewHolder.inflateLayoutId   --> " + viewType);
-                }
                 if (mActionPasser != null) {
                     holder.setPasser(mActionPasser);
                 }
@@ -232,6 +241,24 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
             error = error + "\n【【【" + holderRoot.getSimpleName() + ".调用类内部类ViewHolder 调用四参数构造方法 或者 重写 getMore() 内容 】】】";
         }
         throw new AdapterUseException(holderRoot.getSimpleName() + " 初始化异常:" + error);
+    }
+
+    private VH getVH(Constructor<?> ctor, View itemView) throws Exception {
+        VH holder;
+        try {
+            holder = (VH) ctor.newInstance(itemView);
+        } catch (IllegalArgumentException e) {
+            if (getMore() != null) {
+                try {
+                    holder = (VH) ctor.newInstance(getMore(), itemView);
+                } catch (Exception e1) {
+                    throw e1;
+                }
+            } else {
+                throw e;
+            }
+        }
+        return holder;
     }
 
     @Override

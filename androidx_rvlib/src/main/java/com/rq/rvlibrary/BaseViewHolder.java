@@ -6,7 +6,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-
 import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -30,9 +29,9 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
     }
 
     /**
-     * 为了保证代码的后期维护，该方法必须重写 且必须与Adapter 初始化描述一致
+     * 为了保证代码的后期维护,可以根据定位ViewHolder直接找到布局文件进行修改
      */
-    public int inflateLayoutId() {//不参与诗句逻辑，只作为调试方法，方便维护
+    public int inflateLayoutId() {
         return 0;
     }
 
@@ -139,16 +138,9 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
         this.mContext = context;
     }
 
-   protected ViewGroup parentView;
+    protected ViewGroup parentView;
 
     public void setRecyclerView(ViewGroup recyclerView) {
         this.parentView = recyclerView;
     }
-
-
-    /**
-     * #############################################################
-     * RecyclerView 刷新保存Editext等内容会有错误
-     *#############################################################
-     */
 }

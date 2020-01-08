@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         RecyclerView rv = findViewById(R.id.rv);
         rv.setLayoutManager(new RecyclerUtil().build());
-        BaseAdapter adapter = new BaseAdapter(this, R.layout.item_example, ExampleViewHolder1.class, this);
+        BaseAdapter adapter = new BaseAdapter(this,R.layout.item_example, ExampleViewHolder1.class, this);
         rv.setAdapter(adapter);
         List<String> debug = new ArrayList<>();
         debug.add("111");
@@ -43,19 +43,15 @@ public class MainActivity extends AppCompatActivity {
         debug.add("2678902");
         debug.add("36789033");
         debug.add("4678904");
-        adapter.addFootHolder(6666, FootHolder.class, R.layout.item_example, MainActivity.this);
-        adapter.addHeadHolder(444, FootHolder.class, R.layout.item_example, MainActivity.this);
+//        adapter.addFootHolder(6666, FootHolder.class, R.layout.item_example, MainActivity.this);
+//        adapter.addHeadHolder(444, FootHolder.class, R.layout.item_example, MainActivity.this);
         adapter.setData(debug);
     }
 
     public class ExampleViewHolder1 extends BaseViewHolder<String> {
+
         public ExampleViewHolder1(View itemView) {
             super(itemView);
-        }
-
-        @Override
-        public int inflateLayoutId() {
-            return R.layout.item_example;
         }
 
         @Override
