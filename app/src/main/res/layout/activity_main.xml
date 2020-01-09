@@ -14,8 +14,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
+            android:onClick="click1"
             android:padding="10dp"
-            android:text="click1" />
+            android:text="全部展示" />
 
         <TextView
             android:id="@+id/click2"
@@ -23,8 +24,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
+            android:onClick="click2"
             android:padding="10dp"
-            android:text="click2" />
+            android:text="条件展示" />
 
 
     </LinearLayout>

@@ -84,20 +84,18 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         this.mObject = obj;
     }
 
-    public BaseAdapter(Context context, @NonNull SparseArray<Class<? extends BaseViewHolder>> maps) {
-        this(context, maps, null);
-    }
-
     /**
      * 无序布局   子视图有多种类型
      * 不固定位置
      *
      * @param maps key  对 BrandHolder 的描述，value key布局对应的 BaseViewHolder.class，必须与 BaseViewHolder 使用保持一致
      */
-    public BaseAdapter(Context context, @NonNull SparseArray<Class<? extends BaseViewHolder>> maps, Object obj) {
+    public BaseAdapter(Context context, @NonNull SparseArray<Class<? extends BaseViewHolder>> maps, Object... innerClassContext) {
         setContext(context);
         this.multipleHolder = maps;
-        this.mObject = obj;
+        if (innerClassContext != null && innerClassContext.length > 0) {
+            this.mObject = innerClassContext[0];
+        }
         getMultipleHolderType(null, 0);//进行检测
     }
 
@@ -273,11 +271,27 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         if (multipleHolder != null) {
             holder.fillObject(getDataItem(position));
         } else if (position < headViewData.size()) {
-            holder.setObject(headViewData.get(position));
-            holder.fillObject(headViewData.get(position));
+            Object headObj = headViewData.get(position);
+            if (headObj instanceof InnerList) {
+                for (int i = 0; i < ((InnerList) headObj).size(); i++) {
+                    holder.setObject(((InnerList) headObj).get(i));
+                    holder.fillObject(((InnerList) headObj).get(i));
+                }
+            } else {
+                holder.setObject(headObj);
+                holder.fillObject(headObj);
+            }
         } else if (position >= headViewData.size() + showData.size()) {
-            holder.setObject(footViewData.get(position - headViewData.size() - showData.size()));
-            holder.fillObject(footViewData.get(position - headViewData.size() - showData.size()));
+            Object footObj = footViewData.get(position);
+            if (footObj instanceof InnerList) {
+                for (int i = 0; i < ((InnerList) footObj).size(); i++) {
+                    holder.setObject(((InnerList) footObj).get(i));
+                    holder.fillObject(((InnerList) footObj).get(i));
+                }
+            } else {
+                holder.setObject(footObj);
+                holder.fillObject(footObj);
+            }
         } else {
             holder.setData(getDataItem(position - headViewData.size()));
             holder.fillData(position - headViewData.size(), getDataItem(position - headViewData.size()));
@@ -293,15 +307,17 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * 由于 SparseArray 的特性，add***Holder只能从前面往后面追加，要增加指定顺序需更换为HasMap
      * 需要进行替换，使用以下方法
      *
-     * @see #setFootHolder(int, Object, Class, int, Object)
-     * @see #setHeadHolder(int, Object, Class, int, Object)
+     * @see #setFootHolder(int, Object, Class, int, Object...)
+     * @see #setHeadHolder(int, Object, Class, int, Object...)
      */
-    public void addFootHolder(Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
+    public void addFootHolder(Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object... innerClassContext) {
         int oldSize = footType.size();
         footType.put(footType.size(), footHolder);
         footViewData.put(oldSize, object);
         footViewResId.put(oldSize, resId);
-        this.mObject = more;
+        if (innerClassContext != null && innerClassContext.length > 0) {
+            this.mObject = innerClassContext[0];
+        }
     }
 
     public void addFootHolder(Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
@@ -312,41 +328,72 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         addHeadHolder(null, headHolder, resId, more);
     }
 
-    public void addHeadHolder(Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object more) {
+    public void addHeadHolder(Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object... innerClassContext) {
         int oldSize = headType.size();
         headType.put(headType.size(), headHolder);
         headViewData.put(oldSize, object);
         headViewResId.put(oldSize, resId);
-        this.mObject = more;
+        if (innerClassContext != null && innerClassContext.length > 0) {
+            this.mObject = innerClassContext[0];
+        }
     }
 
     /**
-     * @see #addFootHolder(Object, Class, int, Object)
+     * @see #addFootHolder(Object, Class, int, Object...)
      */
-    public void setFootHolder(int position, Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
+    public void setFootHolder(int position, Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object... innerClassContext) {
         if (footType.size() < position) {
-            addHeadHolder(object, footHolder, resId, more);
+            addHeadHolder(object, footHolder, resId, innerClassContext);
+            notifyDataSetChanged();
             return;
         }
-        int oldSize = footType.size();
-        footType.put(footType.size(), footHolder);
-        footViewData.put(oldSize, object);
-        footViewResId.put(oldSize, resId);
-        this.mObject = more;
+        InnerList newData = new InnerList();
+        Object oldData = footViewData.get(position);
+        if (oldData instanceof InnerList) {
+            newData.addAll((InnerList) oldData);
+            newData.add(object);
+        } else {
+            newData.add(oldData);
+            newData.add(object);
+        }
+        footType.put(position, footHolder);
+        footViewData.put(position, newData);
+        footViewResId.put(position, resId);
+        if (innerClassContext != null && innerClassContext.length > 0) {
+            this.mObject = innerClassContext[0];
+        }
+        notifyItemChanged(position + headType.size() + getItemCount());
     }
 
-    public void setHeadHolder(int position, Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object more) {
+    /**
+     * @param position          头序号，与数据序号无关
+     * @param object            数据
+     * @param headHolder        文件
+     * @param resId             布局
+     * @param innerClassContext 上下文
+     */
+    public void setHeadHolder(int position, Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object... innerClassContext) {
         if (headType.size() < position) {
-            addHeadHolder(object, headHolder, resId, more);
+            addHeadHolder(object, headHolder, resId, innerClassContext);
+            notifyDataSetChanged();
             return;
         }
-        headType.delete(position);
+        InnerList newData = new InnerList();
+        Object oldData = headViewData.get(position);
+        if (oldData instanceof InnerList) {
+            newData.addAll((InnerList) oldData);
+            newData.add(object);
+        } else {
+            newData.add(oldData);
+            newData.add(object);
+        }
         headType.put(position, headHolder);
-        headViewData.delete(position);
-        headViewData.put(position, object);
-        headViewResId.delete(position);
+        headViewData.put(position, newData);
         headViewResId.put(position, resId);
-        this.mObject = more;
+        if (innerClassContext != null && innerClassContext.length > 0) {
+            this.mObject = innerClassContext[0];
+        }
+        notifyItemChanged(position);
     }
 
     public void clearHeadView() {
@@ -360,6 +407,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         footType.clear();
         footViewData.clear();
         footViewResId.clear();
+        notifyDataSetChanged();
     }
 
     public void setActionPasser(ActionPasser passer) {
@@ -419,26 +467,14 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         LOG.d("BaseAdapter", "onAttachedToBottom: ");
     }
 
-    Object headData;
-
-    public void setHeadData(Object headData) {
-        this.headData = headData;
-        if (headViewData.size() == 0) {
-            headViewData.append(0, headData);
-        } else if (headViewData.get(0) == null) {
-            headViewData.remove(0);
-            headViewData.append(0, headData);
-        }
-        this.notifyDataSetChanged();
-    }
-
-    public interface DisplayOption {
+    public interface DisplayOption<DATA> {
         /**
-         * @param data 需要判断的数据
-         * @param tag  提供的判断条件
+         * @param bean     需要判断的数据
+         * @param rule     提供的判断条件
+         * @param position
          * @return 是否显示该数据
          */
-        boolean show(Object data, Object tag);
+        boolean show(DATA bean, Object rule, int position);
     }
 
     private DisplayOption mDisplayOption;
@@ -452,18 +488,16 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
     /**
      * you must used {@link #setDisplay(DisplayOption)} before display
      *
-     * @param tag
-     * @return
+     * @return 是否刷新视图
      */
-    public boolean display(Object tag) {
+    public boolean display(Object rule) {
         final int showSize = showData.size();
         final int originSize = originData.size();
-        LOG.e("BaseAdapter", originSize + " display " + showSize);
         if (mDisplayOption == null) {
             LOG.e("BaseAdapter", "display error:you must used setDisplay before display");
             return false;
         }
-        if (tag == null) {
+        if (rule == null) {
             if (originData.size() > showData.size()) {
                 setData(deepCopy(originData));
                 return true;
@@ -476,16 +510,13 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         }
         boolean hasChange = false;
         List<DATA> newShow = new ArrayList<>();
-        for (DATA item : originData) {
-            LOG.e("BaseAdapter", "display.for");
-            if (mDisplayOption.show(item, tag)) {
-                LOG.e("BaseAdapter", "display.:" + item);
-                newShow.add(item);
+        for (int position = 0; position < originData.size(); position++) {
+            if (mDisplayOption.show(originData.get(position), rule, position)) {
+                newShow.add(originData.get(position));
                 hasChange = true;
             }
         }
         setData(newShow);
-        LOG.e("BaseAdapter", "display.end " + newShow.size() + "  " + showData.size() + "  " + originData.size());
         return hasChange;
     }
 
