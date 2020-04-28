@@ -30,7 +30,7 @@ import static com.rq.rvlibrary.BaseViewHolder.TAG_POSITION;
 public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.Adapter<VH> {
     protected SparseArray<Class<? extends BaseViewHolder>> multipleHolder;
     Context mContext;
-    Class<?> mHolder;
+    Class<VH> mHolder;
     private int itemId;
     private Object mObject;
     private List<DATA> showData = new ArrayList<>();
@@ -42,7 +42,6 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
     private SparseIntArray footViewResId = new SparseIntArray();
     private ActionPasser mActionPasser;
     private HashMap<Class, OnClickMaker> clicks = new HashMap<>();
-    private OnClickMaker allOnClickInfo;
     private OnAttachedToBottomListener mOnAttachedToBottomListener;
     private Map<String, Object> contentCash = new HashMap<>();
 
@@ -50,7 +49,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         this.mContext = context;
     }
 
-    public BaseAdapter(Context context, @LayoutRes int itemLayoutId, Class<? extends BaseViewHolder> baseViewHolderClass) {
+    public BaseAdapter(Context context, @LayoutRes int itemLayoutId, Class<VH> baseViewHolderClass) {
         this(context, itemLayoutId, baseViewHolderClass, null);
     }
 
@@ -59,11 +58,11 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      *
      * @param itemLayoutId 对 BrandHolder 的描述，必须与 BaseViewHolder 使用保持一致
      */
-    public BaseAdapter(Context context, @LayoutRes int itemLayoutId, Class<? extends BaseViewHolder> baseViewHolderClass, Object obj) {
+    public BaseAdapter(Context context, @LayoutRes int itemLayoutId, Class<VH> baseViewHolderClass, Object obj) {
         if (context == null || baseViewHolderClass == null || itemLayoutId == 0) {
             throw new AdapterUseException("BaseAdapter.使用三参数构造函数 值不能为空");
         }
-        setContext(context);
+        this.mContext = context;
         this.mHolder = baseViewHolderClass;
         this.itemId = itemLayoutId;
         this.mObject = obj;
@@ -75,7 +74,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * 布局ID通过重写{@link BaseViewHolder#inflateLayoutId()}指定
      */
     @Deprecated
-    public BaseAdapter(Context context, Class<? extends BaseViewHolder> baseViewHolderClass, Object obj) {
+    public BaseAdapter(Context context, Class<VH> baseViewHolderClass, Object obj) {
         if (context == null || baseViewHolderClass == null) {
             throw new AdapterUseException("BaseAdapter.使用三参数构造函数 值不能为空");
         }
@@ -91,7 +90,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * @param maps key  对 BrandHolder 的描述，value key布局对应的 BaseViewHolder.class，必须与 BaseViewHolder 使用保持一致
      */
     public BaseAdapter(Context context, @NonNull SparseArray<Class<? extends BaseViewHolder>> maps, Object... innerClassContext) {
-        setContext(context);
+        this.mContext = context;
         this.multipleHolder = maps;
         if (innerClassContext != null && innerClassContext.length > 0) {
             this.mObject = innerClassContext[0];
@@ -103,7 +102,7 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * 追加型布局
      */
     public BaseAdapter(Context context) {
-        setContext(context);
+        this.mContext = context;
     }
 
     public void changeItemView(int viewLayout, boolean refuse) {
@@ -113,12 +112,21 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         }
     }
 
+    boolean showEmpty = false;//展示空视图
+    private final static int TYPE_EMPTY = 100865;
+    Object[] passData;
+
+    public void setPassData(Object... passData) {
+        this.passData = passData;
+    }
+
     /**
      * 直接刷新视图，数据为空将置空列表
      *
      * @param dataList 填充数据
      */
     public void setData(List dataList) {
+        this.showEmpty = emptyLayout()!=0 && (dataList == null || dataList.size() == 0);
         this.showData.clear();
         if (dataList != null) {
             this.showData = dataList;
@@ -126,9 +134,22 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         this.notifyDataSetChanged();
     }
 
+    protected int emptyLayout() {
+        return R.layout.item_empty;
+    }
+
     public void addData(List dataList) {
         if (dataList != null) {
             this.showData.addAll(dataList);
+            this.showEmpty = this.showData == null || this.showData.size() == 0;
+            this.notifyDataSetChanged();
+        }
+    }
+
+    public void addData(DATA dataList) {
+        if (dataList != null) {
+            this.showData.add(dataList);
+            this.showEmpty = this.showData == null || this.showData.size() == 0;
             this.notifyDataSetChanged();
         }
     }
@@ -145,7 +166,11 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         if (multipleHolder != null) {
             return getMultipleHolderType(getDataItem(position), position);
         }
-        if (position < headViewData.size() || position >= headViewData.size() + showData.size()) {
+        if (isShowEmpty()) return TYPE_EMPTY;
+        boolean isHead = position < headViewData.size();
+        boolean isFoot = (headViewData.size() + showData.size() > 0 && position >= headViewData.size() + showData.size() && !isShowEmpty());
+        if (isHead || isFoot) {
+//            头部 尾部数据
             return position * -1 - 1;
         }
 
@@ -161,9 +186,12 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         throw new AdapterUseException(" 多类型布局使用错误，必须复写 getMultipleHolderType() 方法,并且不调用父类方法  ");
     }
 
-
     @Override
-    public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public VH onCreateViewHolder(ViewGroup parent, int viewType) {
+        if (viewType == TYPE_EMPTY) {
+            View v = LayoutInflater.from(mContext).inflate(emptyLayout(), parent, false);
+            return (VH) new EmptyViewHolder(v);
+        }
         VH viewHolder;
         if (multipleHolder != null) {
             Class clazz = multipleHolder.get(viewType);
@@ -178,19 +206,24 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
                 LOG.e("BaseAdapter", "onCreateViewHolder.viewType: " + viewType + "  " + holderRoot);
                 viewHolder = getViewHolderByClass(holderRoot, headViewResId.get(realPosition), parent, realPosition);
             } else {
-                int tagPosition = realPosition - headViewData.size() - showData.size();
-                viewHolder = getViewHolderByClass(footType.get(tagPosition), footViewResId.get(tagPosition), parent, realPosition);
+                int footPosition = realPosition - headViewData.size() - showData.size();
+                LOG.e("BaseAdapter", "onCreateViewHolder:footPosition = " + footPosition);
+                viewHolder = getViewHolderByClass(footType.get(footPosition), footViewResId.get(footPosition), parent, realPosition);
             }
+
         } else {
             viewHolder = getViewHolderByClass(mHolder, this.itemId, parent, viewType);
         }
         if (viewHolder != null) {
+            if (passData != null) {
+                viewHolder.setPassData(passData);
+            }
             LOG.e("OnClickMaker", viewHolder.getClass() + " >> " + clicks.get(viewHolder.getClass()));
             OnClickMaker itemOnClickMaker = clicks.get(viewHolder.getClass());
-            if (allOnClickInfo != null) {
-                viewHolder.setClickInfo(allOnClickInfo);
-            } else if (itemOnClickMaker != null) {
+            if (itemOnClickMaker != null) {
                 viewHolder.setClickInfo(itemOnClickMaker);
+            }else if(viewHolder instanceof OnInterceptClick){
+
             }
             viewHolder.setContext(mContext);
             if (viewHolder.itemView.getLayoutParams() != null) {
@@ -204,27 +237,54 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         return mObject;
     }
 
+    public static void setCheckLayout(boolean check) {
+        checkLayout = check;
+    }
+
+    private static boolean checkLayout = true;
+
     /**
      * 通过反射获取Holder实例
      */
     protected VH getViewHolderByClass(@NonNull Class<?> holderRoot, @LayoutRes int resId, ViewGroup parent, int viewType) {
         String error = "";
+        LOG.e("BaseAdapter", "LINE:EmptyViewHolder.class.getSimpleName() = " + EmptyViewHolder.class.getSimpleName());
+        String holdName = "";
+        if (holderRoot == null) {
+            throw new AdapterUseException("Error >>>>   初始化异常:" + error);
+        }
+        holdName = holderRoot.getSimpleName();
+        if (EmptyViewHolder.class.getSimpleName().equals(holdName)) {
+            View itemView = LayoutInflater.from(mContext).inflate(resId, parent, false);
+            return (VH) new EmptyViewHolder(itemView);
+        }
+
         try {
             Constructor<?>[] ctors = holderRoot.getDeclaredConstructors();
             if (ctors != null && ctors.length > 0) {
-                int realLayoutId;
-                if (resId != 0) {
-                    realLayoutId = resId;
-                } else {
-                    LOG.e("BaseAdapter", "LINE(213):");
-                    VH holder = getVH(ctors[0], new View(mContext));
-                    realLayoutId = holder.inflateLayoutId();
+                View itemView = LayoutInflater.from(mContext).inflate(resId, parent, false);
+                VH holder;
+                try {
+                    holder = (VH) ctors[0].newInstance(itemView);
+                } catch (IllegalArgumentException e) {
+                    if (getMore() != null) {
+                        holder = (VH) ctors[0].newInstance(getMore(), itemView);
+                    } else {
+                        throw e;
+                    }
                 }
-                View itemView = LayoutInflater.from(mContext).inflate(realLayoutId, parent, false);
-                VH holder = getVH(ctors[0], itemView);
-                holder.setRecyclerView(parent);
+                if (holder == null) {
+                    throw new AdapterUseException(holderRoot.getSimpleName() + " 获取到了一个空  Holder -_-||  --> " + viewType);
+                }
+                if (checkLayout && holder.inflateLayoutId() != resId) {
+                    throw new AdapterUseException(holderRoot.getSimpleName() + " 布局使用错误,请重写viewHolder.inflateLayoutId   --> " + viewType
+                            + "\n-------------该方法为了维护而写 可使用 BaseAdapter.setCheckLayout() 关闭该检查");
+                }
                 if (mActionPasser != null) {
                     holder.setPasser(mActionPasser);
+                }
+                if (holder instanceof ViewDataGetter) {
+                    mViewDataGetters.add((ViewDataGetter) holder);
                 }
                 return holder;
             }
@@ -238,30 +298,27 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         if (error != null && error.contains("Wrong number of arguments")) {
             error = error + "\n【【【" + holderRoot.getSimpleName() + ".调用类内部类ViewHolder 调用四参数构造方法 或者 重写 getMore() 内容 】】】";
         }
-        throw new AdapterUseException(holderRoot.getSimpleName() + " 初始化异常:" + error);
+        String errName = holderRoot == null ? "ERROR" : holderRoot.getSimpleName();
+        throw new AdapterUseException(errName + " 初始化异常:" + error);
     }
 
-    private VH getVH(Constructor<?> ctor, View itemView) throws Exception {
-        VH holder;
-        try {
-            holder = (VH) ctor.newInstance(itemView);
-        } catch (IllegalArgumentException e) {
-            if (getMore() != null) {
-                try {
-                    holder = (VH) ctor.newInstance(getMore(), itemView);
-                } catch (Exception e1) {
-                    throw e1;
-                }
-            } else {
-                throw e;
+    List<ViewDataGetter> mViewDataGetters = new ArrayList<>();
+
+    public List<Object> getItemInput() {
+        List<Object> res = new ArrayList<>();
+        if (mViewDataGetters.size() != 0) {
+            for (ViewDataGetter item : mViewDataGetters) {
+                res.add(item.getViewData());
             }
         }
-        return holder;
+        return res;
+
     }
+
 
     @Override
     public void onBindViewHolder(VH holder, int position) {
-        holder.itemView.setTag(TAG_POSITION, position);
+        holder.itemView.setTag(TAG_POSITION, position - headViewData.size());
         if (holder instanceof OnContentKeeper) {
             LOG.e("onBindViewHolder", "addView");
             LOG.e("BaseAdapter", "onBindViewHolder: " + holder.getPosition());
@@ -271,35 +328,35 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         if (multipleHolder != null) {
             holder.fillObject(getDataItem(position));
         } else if (position < headViewData.size()) {
-            Object headObj = headViewData.get(position);
-            if (headObj instanceof InnerList) {
-                for (int i = 0; i < ((InnerList) headObj).size(); i++) {
-                    holder.setObject(((InnerList) headObj).get(i));
-                    holder.fillObject(((InnerList) headObj).get(i));
-                }
-            } else {
-                holder.setObject(headObj);
-                holder.fillObject(headObj);
-            }
-        } else if (position >= headViewData.size() + showData.size()) {
-            Object footObj = footViewData.get(position);
-            if (footObj instanceof InnerList) {
-                for (int i = 0; i < ((InnerList) footObj).size(); i++) {
-                    holder.setObject(((InnerList) footObj).get(i));
-                    holder.fillObject(((InnerList) footObj).get(i));
-                }
-            } else {
-                holder.setObject(footObj);
-                holder.fillObject(footObj);
-            }
+            holder.setObject(headViewData.get(position));
+            holder.fillObject(headViewData.get(position));
+        } else if (position >= headViewData.size() + showData.size() && headViewData.size() + showData.size() > 0) {
+            holder.setObject(footViewData.get(position - headViewData.size() - showData.size()));
+            holder.fillObject(footViewData.get(position - headViewData.size() - showData.size()));
         } else {
             holder.setData(getDataItem(position - headViewData.size()));
             holder.fillData(position - headViewData.size(), getDataItem(position - headViewData.size()));
         }
     }
 
+    public boolean isShowEmpty() {
+        return showEmpty;
+    }
+
+    /**
+     * 实际数据数量 不包含 HeadView 和 FootView 数量
+     */
+    public int getDataSize() {
+        return showData.size();
+    }
+
+    /**
+     * @see #getDataSize()
+     */
     @Override
+    @Deprecated
     public int getItemCount() {
+        if (isShowEmpty()) return 1;
         return showData.size() + headViewData.size() + footViewData.size();
     }
 
@@ -307,17 +364,15 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
      * 由于 SparseArray 的特性，add***Holder只能从前面往后面追加，要增加指定顺序需更换为HasMap
      * 需要进行替换，使用以下方法
      *
-     * @see #setFootHolder(int, Object, Class, int, Object...)
-     * @see #setHeadHolder(int, Object, Class, int, Object...)
+     * @see #setFootHolder(int, Object, Class, int, Object)
+     * @see #setHeadHolder(int, Object, Class, int, Object)
      */
-    public void addFootHolder(Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object... innerClassContext) {
+    public void addFootHolder(Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
         int oldSize = footType.size();
         footType.put(footType.size(), footHolder);
         footViewData.put(oldSize, object);
         footViewResId.put(oldSize, resId);
-        if (innerClassContext != null && innerClassContext.length > 0) {
-            this.mObject = innerClassContext[0];
-        }
+        this.mObject = more;
     }
 
     public void addFootHolder(Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
@@ -328,71 +383,48 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         addHeadHolder(null, headHolder, resId, more);
     }
 
-    public void addHeadHolder(Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object... innerClassContext) {
+    public void addHeadHolder(Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object more) {
         int oldSize = headType.size();
         headType.put(headType.size(), headHolder);
         headViewData.put(oldSize, object);
         headViewResId.put(oldSize, resId);
-        if (innerClassContext != null && innerClassContext.length > 0) {
-            this.mObject = innerClassContext[0];
-        }
+        this.mObject = more;
+        this.notifyDataSetChanged();
     }
 
     /**
-     * @see #addFootHolder(Object, Class, int, Object...)
+     * @see #addFootHolder(Object, Class, int, Object)
      */
-    public void setFootHolder(int position, Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object... innerClassContext) {
+    public void setFootHolder(int position, Object object, Class<? extends BaseViewHolder> footHolder, @LayoutRes int resId, Object more) {
         if (footType.size() < position) {
-            addHeadHolder(object, footHolder, resId, innerClassContext);
-            notifyDataSetChanged();
+            addHeadHolder(object, footHolder, resId, more);
             return;
         }
-        InnerList newData = new InnerList();
-        Object oldData = footViewData.get(position);
-        if (oldData instanceof InnerList) {
-            newData.addAll((InnerList) oldData);
-            newData.add(object);
-        } else {
-            newData.add(oldData);
-            newData.add(object);
-        }
-        footType.put(position, footHolder);
-        footViewData.put(position, newData);
-        footViewResId.put(position, resId);
-        if (innerClassContext != null && innerClassContext.length > 0) {
-            this.mObject = innerClassContext[0];
-        }
-        notifyItemChanged(position + headType.size() + getItemCount());
+        int oldSize = footType.size();
+        footType.put(footType.size(), footHolder);
+        footViewData.put(oldSize, object);
+        footViewResId.put(oldSize, resId);
+        this.mObject = more;
     }
 
     /**
-     * @param position          头序号，与数据序号无关
-     * @param object            数据
-     * @param headHolder        文件
-     * @param resId             布局
-     * @param innerClassContext 上下文
+     * @param position   头序号，与数据序号无关
+     * @param object     数据
+     * @param headHolder 文件
+     * @param resId      布局
      */
-    public void setHeadHolder(int position, Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object... innerClassContext) {
+    public void setHeadHolder(int position, Object object, Class<? extends BaseViewHolder> headHolder, @LayoutRes int resId, Object more) {
         if (headType.size() < position) {
-            addHeadHolder(object, headHolder, resId, innerClassContext);
-            notifyDataSetChanged();
+            addHeadHolder(object, headHolder, resId, more);
             return;
         }
-        InnerList newData = new InnerList();
-        Object oldData = headViewData.get(position);
-        if (oldData instanceof InnerList) {
-            newData.addAll((InnerList) oldData);
-            newData.add(object);
-        } else {
-            newData.add(oldData);
-            newData.add(object);
-        }
+        headType.delete(position);
         headType.put(position, headHolder);
-        headViewData.put(position, newData);
+        headViewData.delete(position);
+        headViewData.put(position, object);
+        headViewResId.delete(position);
         headViewResId.put(position, resId);
-        if (innerClassContext != null && innerClassContext.length > 0) {
-            this.mObject = innerClassContext[0];
-        }
+        this.mObject = more;
         notifyItemChanged(position);
     }
 
@@ -410,12 +442,15 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         notifyDataSetChanged();
     }
 
+    /**
+     * 常见交互可通过 addOnItemClickListener 方法设置
+     *
+     * @see #addOnItemClickListener(OnItemClickListener, int...)
+     */
+    @Deprecated
     public void setActionPasser(ActionPasser passer) {
         this.mActionPasser = passer;
     }
-
-//    public void addOnClick(Class<ThirdAppViewHolder> thirdAppViewHolderClass, ThirdController thirdController, int i, int iv_delete) {
-//    }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull VH holder) {
@@ -443,17 +478,22 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         }
     }
 
-    // id = 0   或者不设置 id 则将点击事件绑定到最外层 ItemView
-    public <T extends BaseViewHolder> void addOnClick(Class<T> clazz, OnItemClickListener clickListener, int... ids) {
-        if (clazz != null && clickListener != null) {
-            clicks.put(clazz, new OnClickMaker(clickListener, ids));
-        } else if (clickListener != null) {
-            setChildClick(clickListener, ids);
+    public void removeItem(Object item) {
+        if (item != null && showData.contains(item)) {
+            showData.remove(item);
+            notifyDataSetChanged();
         }
     }
 
-    public void setChildClick(OnItemClickListener clickListener, int... ids) {
-        allOnClickInfo = new OnClickMaker(clickListener, ids);
+    public void addOnItemClickListener(OnItemClickListener clickListener, int... ids) {
+        this.addOnItemClickListener(mHolder, clickListener, ids);
+    }
+
+    // id = 0   或者不设置 id 则将点击事件绑定到最外层 ItemView
+    public <T extends BaseViewHolder> void addOnItemClickListener(Class<T> clazz, OnItemClickListener clickListener, int... ids) {
+        if (clazz != null && clickListener != null) {
+            clicks.put(clazz, new OnClickMaker(clickListener, ids));
+        }
     }
 
     public void setOnAttachedToBottomListener(OnAttachedToBottomListener l) {
@@ -574,20 +614,4 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
     public interface OnAttachedToBottomListener {
         void onAttachedToBottom(int position);
     }
-
-    class OnClickMaker {
-
-        OnItemClickListener clickListener;
-        int[] clickIds;
-
-        public OnClickMaker(OnItemClickListener clickListener, int[] ids) {
-            this.clickListener = clickListener;
-            this.clickIds = ids;
-        }
-    }
-
-    public interface OnItemClickListener<DATA> {
-        void onClick(DATA data, View view);
-    }
-
 }

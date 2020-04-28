@@ -65,20 +65,15 @@ BaseAdapter 则只需要实例化一个即可，常规使用直接 new BaseAdapt
 
     private void showHeadViewHolder() {
         mAdapter.setActionPasser(this);
-        mAdapter.setChildClick(new BaseAdapter.OnItemClickListener() {
+          mAdapter.addOnItemClickListener(new OnItemClickListener() {
             @Override
-            public void onClick(Object data, View view) {
-                if (view.getId() == R.id.add_left) {
-                    Log.e("MainActivity", "LINE(add_left):");
-                    HeadViewHolder.DebugData left = new HeadViewHolder.DebugData(true, System.currentTimeMillis() + "");
-                    mAdapter.setHeadHolder(0, left, HeadViewHolder.class, R.layout.item_head_view);
-                } else if (view.getId() == R.id.add_right) {
-                    Log.e("MainActivity", "LINE(add_right):");
-                    HeadViewHolder.DebugData right = new HeadViewHolder.DebugData(false, System.currentTimeMillis() + "");
-                    mAdapter.setHeadHolder(0, right, HeadViewHolder.class, R.layout.item_head_view);
-                }
+            public void onItemClick(BaseViewHolder holder, Object bean, View view, int position) {
+                Log.e("MainActivity", "onItemClick:bean ->" + bean);
+                Log.e("MainActivity", "onItemClick:holder ->" + holder);
+                Log.e("MainActivity", "onItemClick:view ->" + view);
+                Log.e("MainActivity", "onItemClick:position ->" + position);
             }
-        }, R.id.add_left, R.id.add_right);
+        });
         mAdapter.setHeadHolder(1, null, HeadViewHolder.class, R.layout.item_head_view);
     }
 ```
@@ -127,5 +122,10 @@ public class HeadViewHolder extends BaseViewHolder implements View.OnClickListen
     }
 }
 ```
+
+##### 2020-04-28更新：
+1.移除 v4 v7 兼容版本，需要使用的下载androidX版本，然后通过编译按照编译器指示重新导包
+2.移除 setChildClick 方法，统一使用 addOnItemClickListener
+3.精简BaseAdapter类，加入子项数据获取方法，加入无数据空数据布局显示
 
 ### 未完待续...

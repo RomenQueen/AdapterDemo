@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.rq.rvlibrary.ActionPasser;
 import com.rq.rvlibrary.BaseAdapter;
 import com.rq.rvlibrary.BaseViewHolder;
+import com.rq.rvlibrary.OnItemClickListener;
 import com.rq.rvlibrary.RecyclerUtil;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class MainActivity extends AppCompatActivity implements ActionPasser {
         setContentView(R.layout.activity_main);
         RecyclerView rv = findViewById(R.id.rv);
         rv.setLayoutManager(new RecyclerUtil().build());
-        mAdapter = new BaseAdapter(this, R.layout.item_example, ExampleViewHolder1.class, this);
+        mAdapter = new BaseAdapter<String,ExampleViewHolder1>(this, R.layout.item_example, ExampleViewHolder1.class, this);
         rv.setAdapter(mAdapter);
         List<String> debug = new ArrayList<>();
         debug.add("111");
@@ -46,8 +47,8 @@ public class MainActivity extends AppCompatActivity implements ActionPasser {
         debug.add("444442678902");
         debug.add("55555555555536789033");
         debug.add("6666666664678904");
-//        mAdapter.addFootHolder(6666, FootHolder.class, R.layout.item_example, MainActivity.this);
-//        mAdapter.addHeadHolder(444, FootHolder.class, R.layout.item_example, MainActivity.this);
+        mAdapter.addFootHolder(6666, FootHolder.class, R.layout.item_example, MainActivity.this);
+        mAdapter.addHeadHolder(444, FootHolder.class, R.layout.item_example, MainActivity.this);
         mAdapter.setData(debug);
         mAdapter.setDisplay(new BaseAdapter.DisplayOption<String>() {
             @Override
@@ -71,21 +72,15 @@ public class MainActivity extends AppCompatActivity implements ActionPasser {
 
     private void showHeadViewHolder() {
         mAdapter.setActionPasser(this);
-        mAdapter.setChildClick(new BaseAdapter.OnItemClickListener() {
+        mAdapter.addOnItemClickListener(new OnItemClickListener() {
             @Override
-            public void onClick(Object data, View view) {
-                if (view.getId() == R.id.add_left) {
-                    Log.e("MainActivity", "LINE(add_left):");
-                    HeadViewHolder.DebugData left = new HeadViewHolder.DebugData(true, System.currentTimeMillis() + "");
-                    mAdapter.setHeadHolder(0, left, HeadViewHolder.class, R.layout.item_head_view);
-                } else if (view.getId() == R.id.add_right) {
-                    Log.e("MainActivity", "LINE(add_right):");
-                    HeadViewHolder.DebugData right = new HeadViewHolder.DebugData(false, System.currentTimeMillis() + "");
-                    mAdapter.setHeadHolder(0, right, HeadViewHolder.class, R.layout.item_head_view);
-                }
+            public void onItemClick(BaseViewHolder holder, Object bean, View view, int position) {
+                Log.e("MainActivity", "onItemClick:bean ->" + bean);
+                Log.e("MainActivity", "onItemClick:holder ->" + holder);
+                Log.e("MainActivity", "onItemClick:view ->" + view);
+                Log.e("MainActivity", "onItemClick:position ->" + position);
             }
-        }, R.id.add_left, R.id.add_right);
-        mAdapter.setHeadHolder(1, null, HeadViewHolder.class, R.layout.item_head_view);
+        });
     }
 
     public void click1(View view) {
@@ -101,6 +96,11 @@ public class MainActivity extends AppCompatActivity implements ActionPasser {
 
         public ExampleViewHolder1(View itemView) {
             super(itemView);
+        }
+
+        @Override
+        public int inflateLayoutId() {
+            return R.layout.item_example;
         }
 
         @Override

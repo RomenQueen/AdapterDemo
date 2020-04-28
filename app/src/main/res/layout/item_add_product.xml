@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@null"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/tv_tip_1"
+            style="@style/InputLeftTip"
+            android:text="内容1" />
+
+        <EditText
+            android:id="@+id/et_1"
+            style="@style/Input1AEditText"
+            android:hint="内容1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/padding_20px">
+
+        <TextView
+            android:id="@+id/tv_tip_2"
+            style="@style/InputLeftTip"
+            android:text="内容2" />
+
+        <EditText
+            android:id="@+id/et_2"
+            style="@style/Input1AEditText"
+            android:hint="内容2"
+            android:inputType="numberDecimal" />
+    </LinearLayout>
+
+</LinearLayout>

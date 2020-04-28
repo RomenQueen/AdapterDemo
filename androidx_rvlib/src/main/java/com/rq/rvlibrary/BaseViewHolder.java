@@ -96,20 +96,26 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
         this.mActionPasser = passer;
     }
 
-    public int getMPosition() {
+    public int getMPosition() {//数据
         return (int) itemView.getTag(TAG_POSITION);
     }
 
     View.OnClickListener itemClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            mClick.clickListener.onClick(getData(), v);
+            if (BaseViewHolder.this instanceof OnInterceptClick) {
+                if (((OnInterceptClick) BaseViewHolder.this).intercept()) {
+                    return;
+                }
+            }
+            if (mClick != null)
+                mClick.clickListener.onItemClick(BaseViewHolder.this, getData(), v, getMPosition());
         }
     };
 
-    private BaseAdapter.OnClickMaker mClick;
+    private OnClickMaker mClick;
 
-    public void setClickInfo(final BaseAdapter.OnClickMaker info) {
+    final void setClickInfo(final OnClickMaker info) {
         if (info.clickListener == null) {
             LOG.e("BaseViewHolder", "LINE:86  clickListener 不能为空");
             return;
@@ -142,5 +148,18 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
 
     public void setRecyclerView(ViewGroup recyclerView) {
         this.parentView = recyclerView;
+    }
+
+    public Object getPassNullable(int position) {
+        if (pass != null && pass.length > position) {
+            return pass[position];
+        }
+        return null;
+    }
+
+    Object[] pass;
+
+    public void setPassData(Object... passData) {
+        this.pass = passData;
     }
 }

@@ -1,9 +1,12 @@
-package com.rq.rvlibrary;
+package com.rq.adapter;
 
 import android.text.TextUtils;
 import android.util.Log;
 
-class LOG {
+import com.google.gson.Gson;
+
+
+public class LOG {
 
     public static boolean showDebug() {
         return true;
@@ -16,8 +19,8 @@ class LOG {
     }
 
     public static void d(String tag, String con) {
-        if (showDebug())
-            Log.d(tag, con);
+        if (!showDebug()) return;
+        Log.d(tag, con);
     }
 
     public static void i(String tag, String con) {
@@ -29,15 +32,15 @@ class LOG {
     public static void bean(String tag, Object obj, String... url) {
         if (showDebug()) {
             try {
-                bean(tag, obj.toString(), url);
+                bean(tag, new Gson().toJson(obj).trim(), url);
             } catch (OutOfMemoryError error) {
                 if (obj != null) {
-                    Log.e("LOG", "post: = " + obj.toString());
+                    Log.e("LOG", "bean: = " + obj.toString());
                 } else {
-                    Log.e("LOG", "post: = null");
+                    Log.e("LOG", "bean: = null");
                 }
             } catch (Exception e) {
-                Log.w("LOG", "post: 输出错误");
+                Log.w("LOG", "bean: 输出错误");
             }
         }
     }
@@ -52,9 +55,6 @@ class LOG {
         }
         Log.w("BEAN." + tag, "------------------------------" + lineOut + "------------------------------");
         Log.w("BEAN." + tag, "=====>" + log);
-        if (log == null) {
-            return;
-        }
         String outPut = log.replaceAll(":\\{", ":,{").replaceAll(":\\[\\{", ":[,{")
                 .replaceAll("\\}", "},").replaceAll("\\]", "],").replaceAll("\\\\\"", "");
         String[] outs = outPut.split(",");
@@ -162,4 +162,14 @@ class LOG {
         con = stringBuffer.toString();
         System.err.print(tag + "|  " + con);
     }
+
+//    public static void pass(String tag, BaseController controller, Object[] pass) {
+//        if (showDebug()) {
+//            String p = "";
+//            for (Object o : pass) {
+//                p += String.valueOf(o);
+//            }
+//            LOG.e(tag, controller.getClass().getSimpleName() + ".pass:" + p);
+//        }
+//    }
 }

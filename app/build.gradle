@@ -22,4 +22,5 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api project(path: ':androidx_rvlib')
     implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
 }

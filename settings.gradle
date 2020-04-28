@@ -1,2 +1,2 @@
-include ':app', ':android_rvlib', ':androidx_rvlib'
+include ':app', ':androidx_rvlib'
 rootProject.name='AdapterApplication'
