@@ -28,12 +28,12 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
     api 'androidx.recyclerview:recyclerview:1.1.0'
 }
 
 
-version = "1.0.0"//定义版本标识
+version = "1.0.1"//定义版本标识
 def siteUrl = 'https://github.com/RomenQueen'                        // #CONFIG# // project homepage
 def gitUrl = 'https://github.com/RomenQueen/AdapterDemo'                     // #CONFIG# // project git
 group = "com.rq.adapter"
@@ -42,8 +42,8 @@ install {
         // This generates POM.xml with proper parameters
         pom {
             groupId = 'com.rq.adapter'
-            artifactId = 'android_rvlib'
-            version = '1.0.0'
+            artifactId = 'androidx_rvlib'
+            version = '1.0.1'
             project {
                 packaging 'aar'
                 // Add your description here
@@ -98,7 +98,7 @@ bintray {
     configurations = ['archives']
     pkg {
         repo = "maven"  //发布到Bintray的那个仓库里，默认账户有四个库，我们这里上传到maven库
-        name = "android_rvlib"  //需更改，这个名字就是你在Bintray上创建Package的名字，这里会查询，如果此包不存在就会创建一个。
+        name = "androidx_rvlib"  //需更改，这个名字就是你在Bintray上创建Package的名字，这里会查询，如果此包不存在就会创建一个。
         userOrg = 'raoqian156'    //组织名称 organization
         websiteUrl = siteUrl
         vcsUrl = gitUrl

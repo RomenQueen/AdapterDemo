@@ -14,11 +14,11 @@ android.enableJetifier=true
 implementation 'com.rq.adapter:androidx_rvlib:1.0.0'
 ```
 
-#### (二)v7 使用
+#### ~~(二)v7 使用~~
 
-项目 build.gradle
+~~项目 build.gradle~~
 ```
-implementation 'com.rq.adapter:android_rvlib:1.0.0'
+~~implementation 'com.rq.adapter:android_rvlib:1.0.0'~~
 ```
 
 注:两个版本的使用方法，基本一致，只是导入的支持包不一样，根据项目具体使用的包调整,
@@ -128,4 +128,6 @@ public class HeadViewHolder extends BaseViewHolder implements View.OnClickListen
 2.移除 setChildClick 方法，统一使用 addOnItemClickListener
 3.精简BaseAdapter类，加入子项数据获取方法，加入无数据空数据布局显示
 
+##### 2020-08-13更新：
+1.增加 OnInterceptClick 回调,子Item只需要实现该接口便可以完成点击逻辑，与 addOnItemClickListener 兼容，使用方式查看 OnInterceptClick 注释
 ### 未完待续...

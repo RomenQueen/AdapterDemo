@@ -26,6 +26,11 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
 
     public BaseViewHolder(View itemView) {
         super(itemView);
+        if (BaseViewHolder.this instanceof OnInterceptClick) {
+            for (int vId : ((OnInterceptClick) this).clickIds()) {
+                itemView.findViewById(vId).setOnClickListener(itemClick);
+            }
+        }
     }
 
     /**
@@ -104,7 +109,7 @@ public class BaseViewHolder<DATA> extends RecyclerView.ViewHolder {
         @Override
         public void onClick(View v) {
             if (BaseViewHolder.this instanceof OnInterceptClick) {
-                if (((OnInterceptClick) BaseViewHolder.this).intercept()) {
+                if (((OnInterceptClick) BaseViewHolder.this).intercept(getData(), v, getMPosition())) {
                     return;
                 }
             }

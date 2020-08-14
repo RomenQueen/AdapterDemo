@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
@@ -11,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.gson.Gson;
 import com.rq.rvlibrary.BaseAdapter;
 import com.rq.rvlibrary.BaseViewHolder;
+import com.rq.rvlibrary.OnInterceptClick;
+import com.rq.rvlibrary.OnItemClickListener;
 import com.rq.rvlibrary.RecyclerUtil;
 import com.rq.rvlibrary.ViewDataGetter;
 
@@ -28,6 +31,16 @@ public class EditListActivity extends Activity {
         rv.setLayoutManager(new RecyclerUtil().build());
         rv.setAdapter(mAdapter);
         mAdapter.addData(false);
+        mAdapter.addOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(BaseViewHolder holder, Object bean, View view, int position) {
+                if (view.getId() == R.id.btn_add) {
+                    Toast.makeText(EditListActivity.this, "点击了添加", Toast.LENGTH_LONG).show();
+                } else if (view.getId() == R.id.btn_cut) {
+                    Toast.makeText(EditListActivity.this, "点击了减少", Toast.LENGTH_LONG).show();
+                }
+            }
+        }, R.id.btn_add, R.id.btn_cut);
     }
 
     public void onResult(View view) {
@@ -40,7 +53,8 @@ public class EditListActivity extends Activity {
         mAdapter.addData(false);
     }
 
-    public class ViewHolder extends BaseViewHolder implements ViewDataGetter {
+    public class ViewHolder extends BaseViewHolder implements ViewDataGetter, OnInterceptClick
+    {
         public ViewHolder(View itemView) {
             super(itemView);
         }
@@ -57,9 +71,27 @@ public class EditListActivity extends Activity {
             setTextToView(R.id.tv_tip_2, "数字 " + position);
         }
 
+
         @Override
         public Object getViewData() {
             return "   " + getMPosition() + ".内容1：" + getTextFromView(R.id.et_1) + "  内容2：" + getTextFromView(R.id.et_2);
+        }
+
+        @Override
+        public boolean intercept(Object object, View view, int position) {
+            if (view.getId() == R.id.btn_add) {
+                setTextToView(R.id.tv_num, ((Integer.parseInt(((TextView) getItemView(R.id.tv_num)).getText().toString()) + 1) + ""));
+                return true;
+            } else if (view.getId() == R.id.btn_cut) {
+                setTextToView(R.id.tv_num, ((Integer.parseInt(((TextView) getItemView(R.id.tv_num)).getText().toString()) - 1) + ""));
+                return false;
+            }
+            return false;
+        }
+
+        @Override
+        public int[] clickIds() {
+            return new int[]{R.id.btn_add, R.id.btn_cut};
         }
     }
 

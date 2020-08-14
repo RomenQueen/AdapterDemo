@@ -134,6 +134,10 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         this.notifyDataSetChanged();
     }
 
+    public List getData() {
+        return showData;
+    }
+
     protected int emptyLayout() {
         return R.layout.item_empty;
     }
@@ -222,8 +226,6 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
             OnClickMaker itemOnClickMaker = clicks.get(viewHolder.getClass());
             if (itemOnClickMaker != null) {
                 viewHolder.setClickInfo(itemOnClickMaker);
-            }else if(viewHolder instanceof OnInterceptClick){
-
             }
             viewHolder.setContext(mContext);
             if (viewHolder.itemView.getLayoutParams() != null) {
