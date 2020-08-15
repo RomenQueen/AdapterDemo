@@ -157,6 +157,23 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         }
     }
 
+    public void addData(int position, List dataList) {
+        if (dataList != null && position < this.showData.size()) {
+            this.showData.addAll(position, dataList);
+            this.showEmpty = this.showData == null || this.showData.size() == 0;
+            this.notifyDataSetChanged();
+        }
+    }
+
+    public void addData(int position, DATA dataList) {
+        if (dataList != null && position < this.showData.size()) {
+            this.showData.add(position, dataList);
+            this.showEmpty = this.showData == null || this.showData.size() == 0;
+            this.notifyDataSetChanged();
+        }
+    }
+
+
     public void addData(DATA dataList) {
         if (dataList != null) {
             this.showData.add(dataList);
