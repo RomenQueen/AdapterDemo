@@ -53,8 +53,7 @@ public class EditListActivity extends Activity {
         mAdapter.addData(false);
     }
 
-    public class ViewHolder extends BaseViewHolder implements ViewDataGetter, OnInterceptClick
-    {
+    public class ViewHolder extends BaseViewHolder implements ViewDataGetter, OnInterceptClick {
         public ViewHolder(View itemView) {
             super(itemView);
         }

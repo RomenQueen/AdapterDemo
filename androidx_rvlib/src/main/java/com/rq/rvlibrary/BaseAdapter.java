@@ -120,13 +120,20 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
         this.passData = passData;
     }
 
+    public Object getNullablePass(int position) {
+        if (passData != null && passData.length > position) {
+            return passData[position];
+        }
+        return null;
+    }
+
     /**
      * 直接刷新视图，数据为空将置空列表
      *
      * @param dataList 填充数据
      */
     public void setData(List dataList) {
-        this.showEmpty = emptyLayout()!=0 && (dataList == null || dataList.size() == 0);
+        this.showEmpty = emptyLayout() != 0 && (dataList == null || dataList.size() == 0);
         this.showData.clear();
         if (dataList != null) {
             this.showData = dataList;
@@ -314,12 +321,14 @@ public class BaseAdapter<DATA, VH extends BaseViewHolder> extends RecyclerView.A
             }
         }
         return res;
-
     }
 
 
     @Override
     public void onBindViewHolder(VH holder, int position) {
+        if (passData != null) {
+            holder.setPassData(passData);
+        }
         holder.itemView.setTag(TAG_POSITION, position - headViewData.size());
         if (holder instanceof OnContentKeeper) {
             LOG.e("onBindViewHolder", "addView");
